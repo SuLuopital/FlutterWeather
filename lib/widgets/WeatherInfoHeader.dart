@@ -32,16 +32,8 @@ class WeatherInfoHeader extends StatelessWidget {
                           child: RichText(
                             textAlign: TextAlign.start,
                             text: TextSpan(
-                              text: weatherProv.weather.city + ', ',
+                              text: '${weatherProv.locationsLookup[0].adm1} ${weatherProv.locationsLookup[0].adm2}',
                               style: semiboldText,
-                              children: [
-                                TextSpan(
-                                  text: Country.tryParse(
-                                          weatherProv.weather.countryCode)
-                                      ?.name,
-                                  style: regularText.copyWith(fontSize: 18.0),
-                                ),
-                              ],
                             ),
                           ),
                         ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_weather/helper/extensions.dart';
-import 'package:flutter_weather/models/hourlyWeather.dart';
+import 'package:flutter_weather/models/HourlyWeatherRes.dart';
 import 'package:flutter_weather/provider/weatherProvider.dart';
 import 'package:flutter_weather/theme/colors.dart';
 import 'package:flutter_weather/theme/textStyle.dart';
@@ -77,7 +77,7 @@ class TwentyFourHourForecast extends StatelessWidget {
 
 class HourlyWeatherWidget extends StatelessWidget {
   final int index;
-  final HourlyWeather data;
+  final Hourly data;
   const HourlyWeatherWidget({
     Key? key,
     required this.index,
@@ -93,8 +93,8 @@ class HourlyWeatherWidget extends StatelessWidget {
           Consumer<WeatherProvider>(builder: (context, weatherProv, _) {
             return Text(
               weatherProv.isCelsius
-                  ? '${data.temp.toStringAsFixed(1)}°'
-                  : '${data.temp.toFahrenheit().toStringAsFixed(1)}°',
+                  ? '${data.temp}°'
+                  : '${data.temp?.toDouble.toFahrenheit().toStringAsFixed(1)}°',
               style: semiboldText,
             );
           }),
@@ -124,19 +124,19 @@ class HourlyWeatherWidget extends StatelessWidget {
             height: 42.0,
             width: 42.0,
             child: Image.asset(
-              getWeatherImage(data.weatherCategory),
+              getWeatherImage(data.icon!),
               fit: BoxFit.cover,
             ),
           ),
           FittedBox(
             child: Text(
-              data.condition?.toTitleCase() ?? '',
+              data.text ?? '',
               style: regularText.copyWith(fontSize: 12.0),
             ),
           ),
           const SizedBox(height: 2.0),
           Text(
-            index == 0 ? 'Now' : DateFormat('hh:mm a').format(data.date),
+            index == 0 ? 'Now' : DateFormat('hh:mm a').format(DateTime.parse(data.fxTime!)),
             style: regularText,
           )
         ],

@@ -1,5 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
+import 'package:flutter_weather/network/dio_manager.dart';
 import 'package:flutter_weather/screens/locationError.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:material_floating_search_bar_2/material_floating_search_bar_2.dart';
@@ -29,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
+    DioManager().init();
     super.initState();
     requestWeather();
   }
@@ -43,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Consumer<WeatherProvider>(
         builder: (context, weatherProv, _) {
-          if (!weatherProv.isLoading && !weatherProv.isLocationserviceEnabled)
+          if (!weatherProv.isLoading && !weatherProv.isLocationServiceEnabled)
             return LocationServiceErrorDisplay();
 
           if (!weatherProv.isLoading &&
@@ -99,13 +101,13 @@ class CustomSearchBar extends StatefulWidget {
 
 class _CustomSearchBarState extends State<CustomSearchBar> {
   List<String> _citiesSuggestion = [
-    'New York',
-    'Tokyo',
-    'Dubai',
-    'London',
-    'Singapore',
-    'Sydney',
-    'Wellington'
+    '北京',
+    '上海',
+    '广州',
+    '深圳',
+    '四川',
+    '南京',
+    '重庆'
   ];
 
   @override

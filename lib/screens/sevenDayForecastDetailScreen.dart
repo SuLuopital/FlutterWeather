@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 import 'package:flutter_weather/helper/extensions.dart';
+import 'package:flutter_weather/models/DailyWeatherRes.dart';
 import 'package:flutter_weather/provider/weatherProvider.dart';
 import 'package:flutter_weather/theme/colors.dart';
 import 'package:intl/intl.dart';
@@ -8,7 +9,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../helper/utils.dart';
-import '../models/dailyWeather.dart';
 import '../theme/textStyle.dart';
 
 class SevenDayForecastDetail extends StatefulWidget {
@@ -60,7 +60,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
       ),
       body: Consumer<WeatherProvider>(
         builder: (context, weatherProv, _) {
-          DailyWeather _selectedWeather =
+          Daily _selectedWeather =
               weatherProv.dailyWeather[_selectedIndex];
           return ListView(
             physics: BouncingScrollPhysics(),
@@ -77,7 +77,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                   scrollDirection: Axis.horizontal,
                   itemCount: weatherProv.dailyWeather.length,
                   itemBuilder: (context, index) {
-                    final DailyWeather weather =
+                    final Daily weather =
                         weatherProv.dailyWeather[index];
                     bool isSelected = index == _selectedIndex;
                     return InkWell(
@@ -103,7 +103,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                                 Text(
                                   index == 0
                                       ? 'Today'
-                                      : DateFormat('EEE').format(weather.date),
+                                      : DateFormat('EEE').format(DateTime.parse(weather.fxDate!)),
                                   style: mediumText,
                                   maxLines: 1,
                                 ),
@@ -111,7 +111,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                                   height: 36.0,
                                   width: 36.0,
                                   child: Image.asset(
-                                    getWeatherImage(weather.weatherCategory),
+                                    getWeatherImage(weather.iconDay!),
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -120,8 +120,8 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                                   fit: BoxFit.scaleDown,
                                   child: Text(
                                     weatherProv.isCelsius
-                                        ? '${weather.tempMax.toStringAsFixed(0)}°/${weather.tempMin.toStringAsFixed(0)}°'
-                                        : '${weather.tempMax.toFahrenheit().toStringAsFixed(0)}°/${weather.tempMin.toFahrenheit().toStringAsFixed(0)}°',
+                                        ? '${weather.tempMax?.toDouble.toStringAsFixed(0)}°/${weather.tempMin?.toDouble.toStringAsFixed(0)}°'
+                                        : '${weather.tempMax?.toDouble.toFahrenheit().toStringAsFixed(0)}°/${weather.tempMin?.toDouble.toFahrenheit().toStringAsFixed(0)}°',
                                     style: regularText,
                                   ),
                                 ),
@@ -144,18 +144,18 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                       Text(
                         _selectedIndex == 0
                             ? 'Today'
-                            : DateFormat('EEEE').format(_selectedWeather.date),
+                            : DateFormat('EEEE').format(DateTime.parse(_selectedWeather.fxDate!)),
                         style: mediumText,
                         maxLines: 1,
                       ),
                       Text(
                         weatherProv.isCelsius
-                            ? '${_selectedWeather.tempMax.toStringAsFixed(0)}°/${_selectedWeather.tempMin.toStringAsFixed(0)}°'
-                            : '${_selectedWeather.tempMax.toFahrenheit().toStringAsFixed(0)}°/${_selectedWeather.tempMin.toFahrenheit().toStringAsFixed(0)}°',
+                            ? '${_selectedWeather.tempMax?.toDouble.toStringAsFixed(0)}°/${_selectedWeather.tempMin?.toDouble.toStringAsFixed(0)}°'
+                            : '${_selectedWeather.tempMax?.toDouble.toFahrenheit().toStringAsFixed(0)}°/${_selectedWeather.tempMin?.toDouble.toFahrenheit().toStringAsFixed(0)}°',
                         style: boldText.copyWith(fontSize: 48.0, height: 1.15),
                       ),
                       Text(
-                        _selectedWeather.weatherCategory,
+                        _selectedWeather.textDay!,
                         style: semiboldText.copyWith(color: primaryBlue),
                       )
                     ],
@@ -164,7 +164,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                     height: 112.0,
                     width: 112.0,
                     child: Image.asset(
-                      getWeatherImage(_selectedWeather.weatherCategory),
+                      getWeatherImage(_selectedWeather.iconDay!),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -205,7 +205,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             PhosphorIconsRegular.cloud,
                             color: Colors.white,
                           ),
-                          data: '${_selectedWeather.clouds}%',
+                          data: '${_selectedWeather.cloud}%',
                         ),
                         _ForecastDetailInfoTile(
                           title: 'UV Index',
@@ -213,7 +213,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             PhosphorIconsRegular.sun,
                             color: Colors.white,
                           ),
-                          data: uviValueToString(_selectedWeather.uvi),
+                          data: uviValueToString(_selectedWeather.uvIndex!.toDouble),
                         ),
                         _ForecastDetailInfoTile(
                           title: 'Precipitation',
@@ -221,7 +221,7 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             PhosphorIconsRegular.drop,
                             color: Colors.white,
                           ),
-                          data: _selectedWeather.precipitation + '%',
+                          data: _selectedWeather.precip! + '%',
                         ),
                         _ForecastDetailInfoTile(
                           title: 'Humidity',
@@ -272,8 +272,8 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             color: Colors.white,
                           ),
                           data: weatherProv.isCelsius
-                              ? '${_selectedWeather.tempMorning.toStringAsFixed(1)}°'
-                              : '${_selectedWeather.tempMorning.toFahrenheit().toStringAsFixed(1)}°',
+                              ? '${_selectedWeather.tempMin?.toDouble.toStringAsFixed(1)}°'
+                              : '${_selectedWeather.tempMin?.toDouble.toFahrenheit().toStringAsFixed(1)}°',
                         ),
                         _ForecastDetailInfoTile(
                           title: 'Day Temp',
@@ -282,8 +282,8 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             color: Colors.white,
                           ),
                           data: weatherProv.isCelsius
-                              ? '${_selectedWeather.tempDay.toStringAsFixed(1)}°'
-                              : '${_selectedWeather.tempDay.toFahrenheit().toStringAsFixed(1)}°',
+                              ? '${_selectedWeather.tempMax?.toDouble.toStringAsFixed(1)}°'
+                              : '${_selectedWeather.tempMax?.toDouble.toFahrenheit().toStringAsFixed(1)}°',
                         ),
                         _ForecastDetailInfoTile(
                           title: 'Evening Temp',
@@ -292,8 +292,8 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             color: Colors.white,
                           ),
                           data: weatherProv.isCelsius
-                              ? '${_selectedWeather.tempEvening.toStringAsFixed(1)}°'
-                              : '${_selectedWeather.tempEvening.toFahrenheit().toStringAsFixed(1)}°',
+                              ? '${_selectedWeather.tempMin?.toDouble.toStringAsFixed(1)}°'
+                              : '${_selectedWeather.tempMin?.toDouble.toFahrenheit().toStringAsFixed(1)}°',
                         ),
                         _ForecastDetailInfoTile(
                           title: 'Night Temp',
@@ -302,8 +302,8 @@ class _SevenDayForecastDetailState extends State<SevenDayForecastDetail> {
                             color: Colors.white,
                           ),
                           data: weatherProv.isCelsius
-                              ? '${_selectedWeather.tempNight.toStringAsFixed(1)}°'
-                              : '${_selectedWeather.tempNight.toFahrenheit().toStringAsFixed(1)}°',
+                              ? '${_selectedWeather.tempMin?.toDouble.toStringAsFixed(1)}°'
+                              : '${_selectedWeather.tempMin?.toDouble.toFahrenheit().toStringAsFixed(1)}°',
                         ),
                       ],
                     ),

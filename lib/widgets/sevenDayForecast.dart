@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_weather/helper/extensions.dart';
-import 'package:flutter_weather/models/dailyWeather.dart';
+import 'package:flutter_weather/models/DailyWeatherRes.dart';
 import 'package:flutter_weather/provider/weatherProvider.dart';
 import 'package:flutter_weather/screens/sevenDayForecastDetailScreen.dart';
 import 'package:flutter_weather/theme/colors.dart';
@@ -75,7 +75,7 @@ class SevenDayForecast extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: weatherProv.dailyWeather.length,
                 itemBuilder: (context, index) {
-                  final DailyWeather weather = weatherProv.dailyWeather[index];
+                  final Daily weather = weatherProv.dailyWeather[index];
                   return Material(
                     borderRadius: BorderRadius.circular(12.0),
                     color: index.isEven ? backgroundWhite : Colors.white,
@@ -100,7 +100,7 @@ class SevenDayForecast extends StatelessWidget {
                                 child: Text(
                                   index == 0
                                       ? 'Today'
-                                      : DateFormat('EEEE').format(weather.date),
+                                      : DateFormat('EEEE').format(DateTime.parse(weather.fxDate!)),
                                   style: semiboldText,
                                   maxLines: 1,
                                 ),
@@ -113,13 +113,13 @@ class SevenDayForecast extends StatelessWidget {
                                   height: 36.0,
                                   width: 36.0,
                                   child: Image.asset(
-                                    getWeatherImage(weather.weatherCategory),
+                                    getWeatherImage(weather.iconDay!),
                                     fit: BoxFit.cover,
                                   ),
                                 ),
                                 const SizedBox(height: 4.0),
                                 Text(
-                                  weather.weatherCategory,
+                                  weather.textDay!,
                                   style: lightText,
                                 ),
                               ],
@@ -131,8 +131,8 @@ class SevenDayForecast extends StatelessWidget {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   weatherProv.isCelsius
-                                      ? '${weather.tempMax.toStringAsFixed(0)}°/${weather.tempMin.toStringAsFixed(0)}°'
-                                      : '${weather.tempMax.toFahrenheit().toStringAsFixed(0)}°/${weather.tempMin.toFahrenheit().toStringAsFixed(0)}°',
+                                      ? '${weather.tempMax}°/${weather.tempMin}°'
+                                      : '${weather.tempMax?.toDouble.toFahrenheit().toStringAsFixed(0)}°/${weather.tempMin?.toDouble.toFahrenheit().toStringAsFixed(0)}°',
                                   style: semiboldText,
                                 ),
                               ),

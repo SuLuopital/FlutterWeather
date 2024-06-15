@@ -5,6 +5,8 @@ extension StringCasingExtension on String {
       .split(' ')
       .map((str) => str.toCapitalized())
       .join(' ');
+
+  double get toDouble => double.parse(this);
 }
 
 extension DoubleExtension on double {

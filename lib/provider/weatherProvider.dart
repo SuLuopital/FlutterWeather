@@ -1,37 +1,44 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_weather/models/additionalWeatherData.dart';
-import 'package:flutter_weather/models/geocode.dart';
+import 'package:flutter_weather/models/DailyWeatherRes.dart';
+import 'package:flutter_weather/models/HourlyWeatherRes.dart';
+import 'package:flutter_weather/models/LocationLookUpRes.dart';
+import 'package:flutter_weather/network/dio_manager.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
+
 import 'package:latlong2/latlong.dart';
 
-import '../models/dailyWeather.dart';
-import '../models/hourlyWeather.dart';
-import '../models/weather.dart';
+import '../models/WeatherNow.dart';
 
 class WeatherProvider with ChangeNotifier {
-  String apiKey = 'Enter Your API Key';
-  late Weather weather;
-  late AdditionalWeatherData additionalWeatherData;
+  // String apiKey = 'Enter Your API Key';
+  String apiKey = '4060f45928104d01b0b57c0b420e13f8';
+
+  late WeatherNow weatherNow;
+  // late Location locationLookUp;
+
   LatLng? currentLocation;
-  List<HourlyWeather> hourlyWeather = [];
-  List<DailyWeather> dailyWeather = [];
+  // int? locationCode = 0;
+  List<Hourly> hourlyWeather = [];
+  List<Daily> dailyWeather = [];
+  List<Location> locationsLookup = [];
+
   bool isLoading = false;
   bool isRequestError = false;
   bool isSearchError = false;
-  bool isLocationserviceEnabled = false;
+  bool isLocationServiceEnabled = false;
   LocationPermission? locationPermission;
   bool isCelsius = true;
 
   String get measurementUnit => isCelsius ? '°C' : '°F';
 
   Future<Position?> requestLocation(BuildContext context) async {
-    isLocationserviceEnabled = await Geolocator.isLocationServiceEnabled();
+    debugPrint('request location');
+    isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
+    debugPrint('isLocationServiceEnabled: $isLocationServiceEnabled');
+
     notifyListeners();
 
-    if (!isLocationserviceEnabled) {
+    if (!isLocationServiceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Location service disabled')),
       );
@@ -39,6 +46,8 @@ class WeatherProvider with ChangeNotifier {
     }
 
     locationPermission = await Geolocator.checkPermission();
+    debugPrint('locationPermission: $locationPermission');
+
     if (locationPermission == LocationPermission.denied) {
       isLoading = false;
       notifyListeners();
@@ -62,7 +71,18 @@ class WeatherProvider with ChangeNotifier {
       return Future.error('Location permissions are permanently denied');
     }
 
-    return await Geolocator.getCurrentPosition();
+    Position? position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        forceAndroidLocationManager: true,
+        timeLimit: Duration(seconds: 30),
+      );
+    } catch (e) {
+      debugPrint('getCurrentPosition error: ${e.toString()}');
+    }
+
+    return position;
+    // return await Geolocator.getCurrentPosition();
   }
 
   Future<void> getWeatherData(
@@ -75,6 +95,7 @@ class WeatherProvider with ChangeNotifier {
     if (notify) notifyListeners();
 
     Position? locData = await requestLocation(context);
+    debugPrint('locData: ${locData?.toJson().toString()}');
 
     if (locData == null) {
       isLoading = false;
@@ -84,8 +105,10 @@ class WeatherProvider with ChangeNotifier {
 
     try {
       currentLocation = LatLng(locData.latitude, locData.longitude);
-      await getCurrentWeather(currentLocation!);
-      await getDailyWeather(currentLocation!);
+      await getLocationCode(currentLocation!);
+      await getCurrentWeather();
+      await get24HoursWeather();
+      await get7DaysWeather();
     } catch (e) {
       print(e);
       isRequestError = true;
@@ -95,42 +118,54 @@ class WeatherProvider with ChangeNotifier {
     }
   }
 
-  Future<void> getCurrentWeather(LatLng location) async {
-    Uri url = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/weather?lat=${location.latitude}&lon=${location.longitude}&units=metric&appid=$apiKey',
-    );
+  Future<void> getLocationCode(LatLng location) async {
+    debugPrint(
+        'lat: ${location.latitude}, long: ${location.longitude}, apikey: $apiKey');
     try {
-      final response = await http.get(url);
-      final extractedData = json.decode(response.body) as Map<String, dynamic>;
-      weather = Weather.fromJson(extractedData);
-      print('Fetched Weather for: ${weather.city}/${weather.countryCode}');
+      final uri = Uri.parse(
+          'https://geoapi.qweather.com/v2/city/lookup?location=${location.longitude},${location.latitude}&key=$apiKey&lang=zh');
+      final response = await DioManager().dio.getUri(uri);
+      final extractedData = response.data as Map<String, dynamic>;
+      LocationLookUpRes res = LocationLookUpRes.fromJson(extractedData);
+      locationsLookup = res.location ?? [];
+
     } catch (error) {
-      print(error);
+      print('error: ${error.toString()}');
       isLoading = false;
       this.isRequestError = true;
     }
   }
 
-  Future<void> getDailyWeather(LatLng location) async {
+  Future<void> getCurrentWeather() async {
+    String locationCode = locationsLookup[0].id ?? '101280109';
+    try {
+      final uri = Uri.parse(
+          'https://devapi.qweather.com/v7/weather/now?location=$locationCode&key=$apiKey&lang=zh');
+      final response = await DioManager().dio.getUri(uri);
+      final extractedData = response.data as Map<String, dynamic>;
+      weatherNow = WeatherNow.fromJson(extractedData);
+    } catch (error) {
+      print('error: ${error.toString()}');
+      isLoading = false;
+      this.isRequestError = true;
+    }
+  }
+
+  Future<void> get24HoursWeather() async {
     isLoading = true;
     notifyListeners();
 
-    Uri dailyUrl = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/onecall?lat=${location.latitude}&lon=${location.longitude}&units=metric&exclude=minutely,current&appid=$apiKey',
-    );
     try {
-      final response = await http.get(dailyUrl);
-      final dailyData = json.decode(response.body) as Map<String, dynamic>;
-      additionalWeatherData = AdditionalWeatherData.fromJson(dailyData);
-      List dailyList = dailyData['daily'];
-      List hourlyList = dailyData['hourly'];
-      hourlyWeather = hourlyList
-          .map((item) => HourlyWeather.fromJson(item))
-          .toList()
-          .take(24)
-          .toList();
-      dailyWeather =
-          dailyList.map((item) => DailyWeather.fromDailyJson(item)).toList();
+      final response = await DioManager()
+          .dio
+          .get('https://devapi.qweather.com/v7/weather/24h', queryParameters: {
+        'location': locationsLookup[0].id,
+        'key': apiKey,
+        'lang': 'zh'
+      });
+      HourlyWeatherRes dailyData =
+          HourlyWeatherRes.fromJson(response.data as Map<String, dynamic>);
+      hourlyWeather = dailyData.hourly!;
     } catch (error) {
       print(error);
       isLoading = false;
@@ -138,43 +173,49 @@ class WeatherProvider with ChangeNotifier {
     }
   }
 
-  Future<GeocodeData?> locationToLatLng(String location) async {
+  Future<void> get7DaysWeather() async {
+    isLoading = true;
+    notifyListeners();
+
     try {
-      Uri url = Uri.parse(
-        'http://api.openweathermap.org/geo/1.0/direct?q=$location&limit=5&appid=$apiKey',
-      );
-      final http.Response response = await http.get(url);
-      if (response.statusCode != 200) return null;
-      return GeocodeData.fromJson(
-        jsonDecode(response.body)[0] as Map<String, dynamic>,
-      );
-    } catch (e) {
-      print(e);
-      return null;
+      final response = await DioManager()
+          .dio
+          .get('https://devapi.qweather.com/v7/weather/7d', queryParameters: {
+        'location': locationsLookup[0].id,
+        'key': apiKey,
+        'lang': 'zh'
+      });
+      DailyWeatherRes dailyData =
+          DailyWeatherRes.fromJson(response.data as Map<String, dynamic>);
+      dailyWeather = dailyData.daily!;
+    } catch (error) {
+      print(error);
+      isLoading = false;
+      this.isRequestError = true;
     }
   }
 
   Future<void> searchWeather(String location) async {
-    isLoading = true;
-    notifyListeners();
-    isRequestError = false;
-    print('search');
-    try {
-      GeocodeData? geocodeData;
-      geocodeData = await locationToLatLng(location);
-      if (geocodeData == null) throw Exception('Unable to Find Location');
-      await getCurrentWeather(geocodeData.latLng);
-      await getDailyWeather(geocodeData.latLng);
-      // replace location name with data from geocode
-      // because data from certain lat long might return local area name
-      weather.city = geocodeData.name;
-    } catch (e) {
-      print(e);
-      isSearchError = true;
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
+    // isLoading = true;
+    // notifyListeners();
+    // isRequestError = false;
+    // print('search');
+    // try {
+    //   GeocodeData? geocodeData;
+    //   geocodeData = await locationToLatLng(location);
+    //   if (geocodeData == null) throw Exception('Unable to Find Location');
+    //   await getCurrentWeather(geocodeData.latLng);
+    //   // await getDailyWeather(geocodeData.latLng);
+    //   // replace location name with data from geocode
+    //   // because data from certain lat long might return local area name
+    //   weather.city = geocodeData.name;
+    // } catch (e) {
+    //   print(e);
+    //   isSearchError = true;
+    // } finally {
+    //   isLoading = false;
+    //   notifyListeners();
+    // }
   }
 
   void switchTempUnit() {

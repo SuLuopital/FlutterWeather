@@ -42,8 +42,8 @@ class MainWeatherDetail extends StatelessWidget {
                         ),
                         title: 'Feels Like',
                         data: weatherProv.isCelsius
-                            ? '${weatherProv.weather.feelsLike.toStringAsFixed(1)}°'
-                            : '${weatherProv.weather.feelsLike.toFahrenheit().toStringAsFixed(1)}°'),
+                            ? '${weatherProv.weatherNow.now?.feelsLike}°'
+                            : '${double.parse(weatherProv.weatherNow.now!.feelsLike ?? '0').toFahrenheit().toStringAsFixed(1)}°'),
                     VerticalDivider(
                       thickness: 1.0,
                       indent: 4.0,
@@ -57,7 +57,9 @@ class MainWeatherDetail extends StatelessWidget {
                       ),
                       title: 'Precipitation',
                       data:
-                          '${weatherProv.additionalWeatherData.precipitation}%',
+                      '${weatherProv.weatherNow.now?.precip ?? ''}%',
+                      // data:
+                      //     '${weatherProv.additionalWeatherData.precipitation}%',
                     ),
                     VerticalDivider(
                       thickness: 1.0,
@@ -71,9 +73,10 @@ class MainWeatherDetail extends StatelessWidget {
                         color: Colors.white,
                       ),
                       title: 'UV Index',
-                      data: uviValueToString(
-                        weatherProv.additionalWeatherData.uvi,
-                      ),
+                      data: '${weatherProv.weatherNow.now?.vis}',
+                      // data: uviValueToString(
+                      //   weatherProv.additionalWeatherData.uvi,
+                      // ),
                     ),
                   ],
                 ),
@@ -94,7 +97,7 @@ class MainWeatherDetail extends StatelessWidget {
                         color: Colors.white,
                       ),
                       title: 'Wind',
-                      data: '${weatherProv.weather.windSpeed} m/s',
+                      data: '${weatherProv.weatherNow.now!.windSpeed} m/s',
                     ),
                     VerticalDivider(
                       thickness: 1.0,
@@ -108,7 +111,7 @@ class MainWeatherDetail extends StatelessWidget {
                         color: Colors.white,
                       ),
                       title: 'Humidity',
-                      data: '${weatherProv.weather.humidity}%',
+                      data: '${weatherProv.weatherNow.now!.humidity}%',
                     ),
                     VerticalDivider(
                       thickness: 1.0,
@@ -122,7 +125,7 @@ class MainWeatherDetail extends StatelessWidget {
                         color: Colors.white,
                       ),
                       title: 'Cloudiness',
-                      data: '${weatherProv.additionalWeatherData.clouds}%',
+                      data: '${weatherProv.weatherNow.now?.cloud}%',
                     ),
                   ],
                 ),
